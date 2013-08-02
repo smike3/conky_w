@@ -115,17 +115,31 @@ xmlDocPtr copy_xml(char *buf,int l)
 	return prr;
 }
 
+int check_n_day(int ac, char *av[])
+{
+	int u_day=1;
+	int c;
+	for(c=1;c<ac;c++)
+		{
+			if(!strncmp(av[c],"--day=",6)) printf("%s",av[c]);
+		}
+	return  u_day;
+}
 int main(int argc, char *argv[])
 {
 	CURL *url;
 	CURLcode cerr;
+	int url_day=1;
+	char cr_url[200];
 	w_index = 0;
+	if(argc>1) url_day=check_n_day(argc, argv); 
     if(!(url=curl_easy_init()))
 	{
 		printf ("Ошибка инициализации curl");
 		return (1);
 	}
-	curl_easy_setopt( url, CURLOPT_URL, "http://api.worldweatheronline.com/free/v1/weather.ashx?q=Tambov&format=xml&num_of_days=2&key=brskzv3ts8ma9jqwgrzz35at" );
+	sprintf(cr_url,"http://api.worldweatheronline.com/free/v1/weather.ashx?q=Tambov&format=xml&num_of_days=\%d&key=brskzv3ts8ma9jqwgrzz35at",url_day);
+	curl_easy_setopt( url, CURLOPT_URL, cr_url );
 	curl_easy_setopt( url, CURLOPT_WRITEFUNCTION, parse_weather );
 	cerr = curl_easy_perform( url );
 	if(cerr)
@@ -133,7 +147,7 @@ int main(int argc, char *argv[])
 			printf("Ошибка получения погоды.");
 			return (0);
 		}
-	printf("cerr=%d {%s}",cerr,w_buf);
+	//printf("cerr=%d {%s}",cerr,w_buf);
 	curl_easy_cleanup( url );
 	pr=copy_xml(&w_buf[0],sizeof(w_buf));
 	return (0);
