@@ -82,7 +82,7 @@ size_t parse_weather( void *buffer, size_t size, size_t nmemb, void *userp )
 }
 
 
-xmlDocPtr copy_xml(char *buf,int l)
+xmlDocPtr copy_xml(char *buf,int l,int day)
 {
 	xmlDocPtr prr;
 	xmlNode *root_element;
@@ -91,15 +91,15 @@ xmlDocPtr copy_xml(char *buf,int l)
 	//print_element_names(root_element,"temp_C");
 	//printf("[[[[[[%s]]]]]]]",temp);
 	nn_day=0;
-	print_element_names(root_element,"windspeedKmph",0);
+	print_element_names(root_element,"windspeedKmph",day);
 	printf("[[[[[[%s]]]]]]]",temp);
 	temp=NULL;
 	nn_day=0;
-	print_element_names(root_element,"windspeedMiles",0);
+	print_element_names(root_element,"windspeedMiles",day);
 	printf("[[[[[[%s]]]]]]]",temp);
 	temp=NULL;
 	nn_day=0;
-	print_element_names(root_element,"precipMM",0);
+	print_element_names(root_element,"precipMM",day);
 	printf("[[[[[[%s]]]]]]]",temp);
 /*	printf("node type: Element, name: %s,%s\n", root_element->name,root_element->content);
 	cur_node =root_element->children;
@@ -115,14 +115,20 @@ xmlDocPtr copy_xml(char *buf,int l)
 	return prr;
 }
 
-int check_n_day(int ac, char *av[])
+int check_n_day(int ac, char *av[], char *s)
 {
 	int u_day=1;
 	int c;
+	char *v;
+	//printf("%d",strlen(s));
 	for(c=1;c<ac;c++)
-		{
-			if(!strncmp(av[c],"--day=",6)) printf("%s",av[c]);
-		}
+		if(!strncmp(av[c],s,strlen(s)))
+			{
+		//		printf("%s",&av[c][strlen(s)]);
+				v=&av[c][strlen(s)+1];
+				if(!(u_day=strtol(v,NULL, 10))) printf("Неправильный агрумент %s",s);
+				printf("%d",u_day);
+			}
 	return  u_day;
 }
 int main(int argc, char *argv[])
@@ -130,9 +136,14 @@ int main(int argc, char *argv[])
 	CURL *url;
 	CURLcode cerr;
 	int url_day=1;
+	int day=0;
 	char cr_url[200];
 	w_index = 0;
-	if(argc>1) url_day=check_n_day(argc, argv); 
+	if(argc>1)
+		{
+			url_day=check_n_day(argc, argv,"--nday");
+			day=check_n_day(argc, argv,"--day");
+		}
     if(!(url=curl_easy_init()))
 	{
 		printf ("Ошибка инициализации curl");
@@ -149,7 +160,8 @@ int main(int argc, char *argv[])
 		}
 	//printf("cerr=%d {%s}",cerr,w_buf);
 	curl_easy_cleanup( url );
-	pr=copy_xml(&w_buf[0],sizeof(w_buf));
+//	if(day>)
+	pr=copy_xml(&w_buf[0],sizeof(w_buf),day-1);
 	return (0);
 }
 
