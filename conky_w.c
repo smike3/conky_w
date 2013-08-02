@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
 			printf("Ошибка получения погоды.");
 			return (0);
 		}
-//	printf("cerr=%d {%s}",cerr,w_buf);
+	printf("cerr=%d {%s}",cerr,w_buf);
 	curl_easy_cleanup( url );
 	pr=copy_xml(&w_buf[0],sizeof(w_buf));
 	return (0);
