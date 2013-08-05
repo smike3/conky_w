@@ -28,11 +28,10 @@ int w_index;
 int nn_day;
 xmlDocPtr pr;
 char *temp;
-struct weather
+struct weather_cur
 {
-	char date[11];
-	char temp_max[4];
-	char temp_min[4];
+	char time[11];
+	char temp[4];
 	char code[10];
 	char url[255];
 	char desc[100];
@@ -45,7 +44,22 @@ struct weather
 	char cloudcover[10];
 };
 
+struct weather
+{
+	char date[11];
+	char temp_max[4];
+	char temp_min[4];
+	char code[10];
+	char url[255];
+	char desc[100];
+	char wind_speed[10];
+	char wind_dir[10];
+	char precip[10];
+};
+
+
 struct weather * ww;
+struct weather_cur w;
 
 void print_element_names(xmlNode * a_node, char *find_s, int n_day)
 {
@@ -80,6 +94,15 @@ size_t parse_weather( void *buffer, size_t size, size_t nmemb, void *userp )
  return segsize;
 }
 
+char * xml_to_cur(xmlNode *root_element, char *s, int n, char *cw)
+{
+	nn_day=0;
+		print_element_names(root_element,s,n);
+//		printf("<%s>",temp);
+		strcpy(cw,temp);
+		temp=NULL;
+	return "ss";
+}
 
 xmlDocPtr copy_xml(char *buf,int l,int day)
 {
@@ -88,112 +111,25 @@ xmlDocPtr copy_xml(char *buf,int l,int day)
 	xmlNode *root_element;
 	prr=xmlReadMemory(buf, l, "123.xml", NULL, 0);
 	root_element = xmlDocGetRootElement(prr);
-	//print_element_names(root_element,"temp_C");
-	//printf("[[[[[[%s]]]]]]]",temp);
-	strcpy(ww[0].date,"");
+	xml_to_cur(root_element,"observation_time",0,w.time);
+	xml_to_cur(root_element,"temp_C",0,w.temp);
+	xml_to_cur(root_element,"humidity",0,w.humidity);
+	xml_to_cur(root_element,"visibility",0,w.visibility);
+	xml_to_cur(root_element,"pressure",0,w.pressure);
+	xml_to_cur(root_element,"cloudcover",0,w.cloudcover);
 	for(c=0;c<day;c++) 
 		{  
-		nn_day=0;
-		print_element_names(root_element,"date",c);
-		printf("[[[[[[%s]]]]]]]",temp);
-		strcpy(ww[c+1].date,temp);
-		temp=NULL;
-		}
-	nn_day=0;
-		print_element_names(root_element,"temp_C",0);
-		printf("[[[[[[%s]]]]]]]",temp);
-		strcpy(ww[0].temp_max,temp);
-		strcpy(ww[0].temp_min,temp);
-		temp=NULL;
-	for(c=0;c<day;c++) 
-		{  
-		nn_day=0;
-		print_element_names(root_element,"tempMaxC",c);
-		printf("[[[[[[%s]]]]]]]",temp);
-		strcpy(ww[c+1].temp_max,temp);
-		temp=NULL;
-		}
-	for(c=0;c<day;c++) 
-		{  
-		nn_day=0;
-		print_element_names(root_element,"tempMinC",c);
-		printf("[[[[[[%s]]]]]]]",temp);
-		strcpy(ww[c+1].temp_min,temp);
-		temp=NULL;
-		}
-	for(c=0;c<=day;c++) 
-		{  
-		nn_day=0;
-		print_element_names(root_element,"weatherCode",c);
-		printf("[[[[[[%s]]]]]]]",temp);
-		strcpy(ww[c].code,temp);
-		temp=NULL;
-		}
-	for(c=0;c<=day;c++) 
-		{  
-		nn_day=0;
-		print_element_names(root_element,"weatherIconUrl",c);
-		printf("[[[[[[%s]]]]]]]",temp);
-		strcpy(ww[c].url,temp);
-		temp=NULL;
-		}
-	for(c=0;c<=day;c++) 
-		{  
-		nn_day=0;
-		print_element_names(root_element,"weatherDesc",c);
-		printf("[[[[[[%s]]]]]]]",temp);
-		strcpy(ww[c].desc,temp);
-		temp=NULL;
-		}
-	for(c=0;c<=day;c++) 
-		{  
-		nn_day=0;
-		print_element_names(root_element,"windspeedKmph",c);
-		printf("[[[[[[%s]]]]]]]",temp);
-		strcpy(ww[c].wind_speed,temp);
-		temp=NULL;
-		}
-	for(c=0;c<=day;c++) 
-		{  
-		nn_day=0;
-		print_element_names(root_element,"winddir16Point",c);
-		printf("[[[[[[%s]]]]]]]",temp);
-		strcpy(ww[c].wind_dir,temp);
-		temp=NULL;
-		}
-	for(c=0;c<=day;c++) 
-		{  
-		nn_day=0;
-		print_element_names(root_element,"precipMM",c);
-		printf("[[[[[[%s]]]]]]]",temp);
-		strcpy(ww[c].precip,temp);
-		temp=NULL;
-		}
+			xml_to_cur(root_element,"date",c,ww[c].date);
+			xml_to_cur(root_element,"tempMaxC",c,ww[c].temp_max);
+			xml_to_cur(root_element,"tempMinC",c,ww[c].temp_min);
+			xml_to_cur(root_element,"weatherCode",c+1,ww[c].code);
+			xml_to_cur(root_element,"weatherIconUrl",c+1,ww[c].url);
+			xml_to_cur(root_element,"weatherDesc",c+1,ww[c].desc);
+			xml_to_cur(root_element,"windspeedKmph",c+1,ww[c].wind_speed);
+			xml_to_cur(root_element,"winddir16Point",c+1,ww[c].wind_dir);
+			xml_to_cur(root_element,"precipMM",c+1,ww[c].precip);
 	
-		nn_day=0;
-		print_element_names(root_element,"humidity",0);
-		printf("[[[[[[%s]]]]]]]",temp);
-		strcpy(ww[0].humidity,temp);
-		temp=NULL;
-	
-		nn_day=0;
-		print_element_names(root_element,"visibility",0);
-		printf("[[[[[[%s]]]]]]]",temp);
-		strcpy(ww[0].visibility,temp);
-		temp=NULL;
-
-		nn_day=0;
-		print_element_names(root_element,"pressure",0);
-		printf("[[[[[[%s]]]]]]]",temp);
-		strcpy(ww[0].pressure,temp);
-		temp=NULL;
-
-		nn_day=0;
-		print_element_names(root_element,"cloudcover",0);
-		printf("[[[[[[%s]]]]]]]",temp);
-		strcpy(ww[0].cloudcover,temp);
-		temp=NULL;
-		
+		}
 	return prr;
 }
 
@@ -210,7 +146,7 @@ int check_arg(int ac, char *av[], char *s)
 				v=&av[c][strlen(s)+1];
 				//if(!(u_day=strtol(v,NULL, 10))) printf("Неправильный агрумент %s",s);
 				u_day=strtol(v,NULL, 10);
-				printf("%d",u_day);
+	//			printf("%d",u_day);
 			}
 	return  u_day;
 }
@@ -255,7 +191,8 @@ int main(int argc, char *argv[])
 	curl_easy_cleanup( url );
 	if(day>url_day) err_rep(0);
 	pr=copy_xml(&w_buf[0],sizeof(w_buf),day);
-	for(c=0;c<=day;c++) printf("\n%s %s %s %s %s %s %s %s %s %s %s %s %s",ww[c].date,ww[c].temp_max,ww[c].temp_min,ww[c].code,ww[c].url,ww[c].desc,ww[c].wind_speed,ww[c].wind_dir,ww[c].precip,ww[c].humidity,ww[c].visibility,ww[c].pressure,ww[c].cloudcover);
+	for(c=0;c<day;c++) printf("\n%s %s %s %s %s %s %s %s %s",ww[c].date,ww[c].temp_max,ww[c].temp_min,ww[c].code,ww[c].url,ww[c].desc,ww[c].wind_speed,ww[c].wind_dir,ww[c].precip);
+	printf("\n\n%s %s %s %s %s %s",w.time,w.temp,w.humidity,w.visibility,w.pressure,w.cloudcover);
 	printf("\n");
 	free(ww);
 	return 0;
