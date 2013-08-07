@@ -94,14 +94,14 @@ size_t parse_weather( void *buffer, size_t size, size_t nmemb, void *userp )
  return segsize;
 }
 
-char * xml_to_cur(xmlNode *root_element, char *s, int n, char *cw)
+void xml_to_cur(xmlNode *root_element, char *s, int n, char *cw)
 {
 	nn_day=0;
 		print_element_names(root_element,s,n);
 //		printf("<%s>",temp);
 		strcpy(cw,temp);
 		temp=NULL;
-	return "ss";
+	return;
 }
 
 xmlDocPtr copy_xml(char *buf,int l,int day)
@@ -113,6 +113,13 @@ xmlDocPtr copy_xml(char *buf,int l,int day)
 	root_element = xmlDocGetRootElement(prr);
 	xml_to_cur(root_element,"observation_time",0,w.time);
 	xml_to_cur(root_element,"temp_C",0,w.temp);
+	xml_to_cur(root_element,"weatherCode",0,w.code);
+	//xml_to_cur(root_element,"weatherIconUrl",0,w.url);
+	sprintf(w.url,"http://cdn.worldweatheronline.net/images/weather/large/%s_day_lg.png",w.code);
+	xml_to_cur(root_element,"weatherDesc",0,w.desc);
+	xml_to_cur(root_element,"windspeedKmph",0,w.wind_speed);
+	xml_to_cur(root_element,"winddir16Point",0,w.wind_dir);
+	xml_to_cur(root_element,"precipMM",0,w.precip);
 	xml_to_cur(root_element,"humidity",0,w.humidity);
 	xml_to_cur(root_element,"visibility",0,w.visibility);
 	xml_to_cur(root_element,"pressure",0,w.pressure);
@@ -151,23 +158,57 @@ int check_arg(int ac, char *av[], char *s)
 	return  u_day;
 }
 
+int check_arg_s(int ac, char *av[], char *s)
+{
+	
+	int c;
+	char *v;
+	int r=0;
+//	printf("%d",strlen(s));
+	for(c=1;c<ac;c++)
+		if(!strncmp(av[c],s,strlen(s)))
+			{
+				//printf("%s",&av[c][strlen(s)]);
+				v=&av[c][strlen(s)+1];
+				 //if(strlen(av[c])>strlen(s)) strcpy(v,&av[c][strlen(s)+1]);
+				//else 
+				//printf("[%s]",&av[c][strlen(s)+1]);
+				//if(!(u_day=strtol(v,NULL, 10))) printf("Неправильный агрумент %s",s);
+			if(!strcmp("temp",v)) r=1;
+			else if(!strcmp("img",v)) r=2;
+				else if(!strcmp("wind",v)) r=3;
+	//			printf("%d",u_day);
+			}
+	
+	return  r;
+}
+
 void err_rep(int n)
 {
-	char err_r[][256]=
+	char *err_r[]=
 	{
 		"Значение day не может быть больше nday\n",
 		"Значение nday не может быть больше 7\n",
 		"Ошибка инициализации curl\n",
 		"Ошибка получения погоды.\n",
-		"Ошибка при распределении памяти\n"
+		"Ошибка при распределении памяти\n",
+		"Не выбран ни один параметр\n"
 	};
 	printf("%s",err_r[n]);
 	free(ww);
 	exit(0);
 }
 
+void xml_to_img(void)
+{
+	
+	printf("${image %s -p 1,360 -s 70x70}",w.url);
+	return;
+}
+
 int main(int argc, char *argv[])
 {
+	FILE *f;
 	CURL *url;
 	CURLcode cerr;
 	int url_day=1;
@@ -188,12 +229,36 @@ int main(int argc, char *argv[])
 	cerr = curl_easy_perform( url );
 	if(cerr) err_rep(3);
 	//printf("cerr=%d {%s}",cerr,w_buf);
-	curl_easy_cleanup( url );
+//	curl_easy_cleanup( url );
 	if(day>url_day) err_rep(0);
 	pr=copy_xml(&w_buf[0],sizeof(w_buf),day);
-	for(c=0;c<day;c++) printf("\n%s %s %s %s %s %s %s %s %s",ww[c].date,ww[c].temp_max,ww[c].temp_min,ww[c].code,ww[c].url,ww[c].desc,ww[c].wind_speed,ww[c].wind_dir,ww[c].precip);
-	printf("\n\n%s %s %s %s %s %s",w.time,w.temp,w.humidity,w.visibility,w.pressure,w.cloudcover);
-	printf("\n");
+//	param=;
+//	printf("%d",param);
+//	if(check_arg_s(argc, argv,"--param"))
+switch(check_arg_s(argc, argv,"--param"))
+
+	{
+		case 1:
+			printf("%s",w.temp);
+			break;
+		case 2:
+			f=fopen(w.code,"w+b");
+			curl_easy_setopt( url, CURLOPT_URL, w.url );
+			curl_easy_setopt( url, CURLOPT_WRITEDATA, f);
+			curl_easy_setopt( url, CURLOPT_WRITEFUNCTION, NULL );
+			cerr = curl_easy_perform( url );
+		//	xml_to_img();
+			printf("${image ~/conky_w/%s -p 1,360 -s 70x70}",w.code);
+			curl_easy_cleanup( url );
+			break;
+		case 3:
+			printf("%s",w.wind_speed);
+			break;
+		default: err_rep(5);
+	}
+//	for(c=0;c<day;c++) printf("\n%s %s %s %s %s %s %s %s %s",ww[c].date,ww[c].temp_max,ww[c].temp_min,ww[c].code,ww[c].url,ww[c].desc,ww[c].wind_speed,ww[c].wind_dir,ww[c].precip);
+//	printf("\n\n%s",w.url);
+//	printf("\n");
 	free(ww);
 	return 0;
 }
