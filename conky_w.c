@@ -26,6 +26,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/stat.h>
+#include <locale.h>
 
 struct cmd
 {
@@ -159,6 +160,7 @@ struct cmd_p parse_cmd(char *buf)
 			if(!strcmp(cc.name,"--datatype")) strcpy(cp.datatype,cc.value);
 			else if(!strcmp(cc.name,"--startday")) cp.day=atoi(cc.value);
 				else if(!strcmp(cc.name,"--dateformat")) strcpy(cp.date_format,cc.value);
+					else if(!strcmp(cc.name,"--hideunits")) cp.hide_u=1;
 					
 		}
 	}
@@ -178,10 +180,13 @@ void search_dir(char *buf)
 			c=parse_cmd(buf);
 			buf=c.buf;
 			if (!strcmp(c.datatype,"WI")) print_WI(c.day);
-				else if (!strcmp(c.datatype,"CT")) printf("%s °C",w.temp);
+				else if (!strcmp(c.datatype,"CT")) if(c.hide_u) printf("%s",w.temp);
+													else printf("%s °C",w.temp);
 					else if (!strcmp(c.datatype,"WS")) printf("%s км/ч",w.wind_speed);
-						else if (!strcmp(c.datatype,"HT")) printf("%s °C",ww[c.day].temp_max);
-							else if (!strcmp(c.datatype,"LT")) printf("%s °C",ww[c.day].temp_min);
+						else if (!strcmp(c.datatype,"HT")) if(c.hide_u) printf("%s",ww[c.day].temp_max);
+															else printf("%s °C",ww[c.day].temp_max);
+							else if (!strcmp(c.datatype,"LT")) if(c.hide_u) printf("%s",ww[c.day].temp_min);
+																else printf("%s °C",ww[c.day].temp_min);
 								else if (!strcmp(c.datatype,"DW"))
 									{
 										memset(&tm, 0, sizeof(struct tm));						
@@ -283,6 +288,7 @@ int main(int argc, char *argv[])
 	char cr_url[200];
 	int day=4;
 	struct stat sb;
+	setlocale(LC_ALL, "");
 	if(stat(conky_w_conf,&sb)==-1) err_rep(7);
 	if(!(buf_conf=calloc(sb.st_size,sizeof(char)))) err_rep(8);
 	if((f=fopen(conky_w_conf, "rb"))==NULL) err_rep(6);
