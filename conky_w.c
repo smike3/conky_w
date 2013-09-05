@@ -18,17 +18,18 @@
 #define conky_w_conf "/home/smike/conky_w/conky_w.rc"
 #define MAX_BUF	6000
 
-
+#define _XOPEN_SOURCE
 #include <stdio.h>
 #include <curl/curl.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 #include <string.h>
+#include <time.h>
 #include <sys/stat.h>
 
 struct cmd
 {
-	char name[256];
+	char name[255];
 	char value[4];
 	char *buf;
 };
@@ -37,7 +38,9 @@ struct cmd_p
 {
 	char datatype[3];
 	int day;
+	char date_format[256];
 	char *buf;
+	int hide_u;
 };
 
 struct weather_cur
@@ -97,132 +100,39 @@ void err_rep(int n)
 	exit(1);
 }
 
-/*struct cmd read_cmd(char *buf)
-{
-	int c=0;
-	int cv=0;
-	int fl=0;
-	struct cmd cc;
-	while(*buf!=']')
-	{
-		cc.name[c+1]='\0';
-		cc.value[cv+1]='\0';
-		if((*buf=='-')&&(*(buf+1)=='-')) buf=buf+2;
-		else if(*buf==' ') {
-							buf++;
-							break;
-							}
-		if(*buf==' ') {cc.buf=buf; return cc;}
-		if(!fl) {if(*buf!='=') cc.name[c++]=*buf;
-			else fl=1;
-		}
-		else if(*buf!=' ') cc.value[cv++]=*buf;
-		
-	
-	//if((*(buf)=='-')&&(*(buf+1)=='-')) printf("\nYahoo!!!\n");
-		putchar(*buf);
-//	printf("[%d]",buf);
-	buf++;
-	}
-	cc.buf=buf;
-	return cc;
-}*/
-
 void print_WI(int day)
 {
 	FILE *f;
 	CURL *url;
 	CURLcode cerr;
-	if(day) f=fopen(ww[day-1].code,"w+b");
+	if(day) f=fopen(ww[day].code,"w+b");
 	else f=fopen(w.code,"w+b");
 	if(!(url=curl_easy_init())) err_rep(2);
-	if(day) curl_easy_setopt( url, CURLOPT_URL, ww[day-1].url );
+	if(day) curl_easy_setopt( url, CURLOPT_URL, ww[day].url );
 	else curl_easy_setopt( url, CURLOPT_URL, w.url );
 	curl_easy_setopt( url, CURLOPT_WRITEDATA, f);
 	curl_easy_setopt( url, CURLOPT_WRITEFUNCTION, NULL );
 	cerr = curl_easy_perform( url );
+//3	printf("[%s](%d)",ww[day].url,day);
 	if(cerr) err_rep(3);
-		//	xml_to_img();
-			if(day) printf("~/conky_w/%s",ww[day-1].code);
-			else printf("~/conky_w/%s",w.code);
-			curl_easy_cleanup( url );
+	if(day) printf("~/conky_w/%s",ww[day].code);
+	else printf("~/conky_w/%s",w.code);
+	curl_easy_cleanup( url );
 	fclose(f);
 	return;
 }
-void print_n_WI(int day)
-{
-	FILE *f;
-	CURL *url;
-	CURLcode cerr;
-	f=fopen(ww[day].code,"w+b");
-	if(!(url=curl_easy_init())) err_rep(2);
-	curl_easy_setopt( url, CURLOPT_URL, ww[day].url );
-	curl_easy_setopt( url, CURLOPT_WRITEDATA, f);
-	curl_easy_setopt( url, CURLOPT_WRITEFUNCTION, NULL );
-	cerr = curl_easy_perform( url );
-	if(cerr) err_rep(3);
-		//	xml_to_img();
-			printf("~/conky_w/%s",ww[day].code);
-			curl_easy_cleanup( url );
-	fclose(f);
-	return;
-}
-/*void print_CT(void)
-{
-	
-	if(cerr) err_rep(3);
-		//	xml_to_img();
-			printf("~/conky_w/%s",w.code);
-			curl_easy_cleanup( url );
-	return;
-}*/
-
-/*char * parse_cmd(char *buf)
-{
-	struct cmd cc;
-	struct cmd cc_temp;
-	while(*buf!=']')
-	{
-		buf++;
-	if((*buf=='-')&&(*(buf+1)=='-')) {//printf("\nYahoo!!!\n");
-		//buf++;
-		cc=read_cmd(buf+2);
-		buf=cc.buf;
-	//	printf("\n(%s)=(%s),%d\n",cc.name,cc.value,buf);
-		if(!strcmp(cc.name,"datatype"))
-			{
-				if (!strcmp(cc.value,"WI")) print_WI(); //printf("%s",w.url);
-				else if (!strcmp(cc.value,"CT")) printf("%s °C",w.temp);
-					else if (!strcmp(cc.value,"WS")) printf("%s км/ч",w.wind_speed);
-				cc_temp=cc;
-			}
-		else if((!strcmp(cc.name,"startday"))&&(!strcmp(cc_temp.name,"datatype")))
-			{
-				if (!strcmp(cc_temp.value,"WI")) print_n_WI(strtol(cc.value,NULL, 10)-1); //printf("%s",w.url);
-				//else if (!strcmp(cc.value,"CT")) printf("%s °C",w.temp);
-					//else if (!strcmp(cc.value,"WS")) printf("%s км/ч",w.wind_speed);
-			}
-			//	printf("[%s]!!!!!!!",cc_temp.name);	
-
-	}
-//	else printf("\nY%c-%c",*buf,*(buf+1));
-	}
-	return buf;
-}*/
 
 struct cmd read_cmd(char *buf)
 {
 	struct cmd cc;
 	int c=0,fl=0,cv=0;;
-//	char a='f',b='g';
-	cc.name[0]='\0';
-	cc.value[0]='\0';
+	memset(&cc,'\0',sizeof(struct cmd));
+	//cc.name[0]='\0';
+	//cc.value[0]='\0';
 	for(;*buf!=']';buf++)
 	{
-	//	printf("[%c]",*buf);
-		cc.name[c+1]='\0';
-		cc.value[cv+1]='\0';
-		//cc.name[c++]=*buf;
+		//cc.name[c+1]='\0';
+		//cc.value[cv+1]='\0';
 		if(*buf==' ') {cc.buf=buf; return cc;}
 		if(!fl) {if(*buf!='=') cc.name[c++]=*buf;
 			else fl=1;
@@ -230,7 +140,6 @@ struct cmd read_cmd(char *buf)
 		else if(*buf!=' ') cc.value[cv++]=*buf;
 		
 	}
-//	if((a=='f')||(b=='g')) printf("\nEEEEEEE!");
 	cc.buf=buf;
 	return cc;
 }
@@ -238,22 +147,20 @@ struct cmd_p parse_cmd(char *buf)
 {
 	struct cmd cc;
 	struct cmd_p cp;
-	cp.datatype[0]='\0';
-	cp.day=0;
+	//cp.datatype[0]='\0';
+	//cp.day=0;
+	memset(&cp,0,sizeof(struct cmd_p));
 	for(;*buf!=']';buf++)
 	{
 		if((*buf=='-')&&(*(buf+1)=='-'))
 		{
-			cc=read_cmd(buf);//putchar('+');
-	//		printf("(%s=%s)",cc.name,cc.value);
+			cc=read_cmd(buf);
 			cc.buf=buf;
 			if(!strcmp(cc.name,"--datatype")) strcpy(cp.datatype,cc.value);
 			else if(!strcmp(cc.name,"--startday")) cp.day=atoi(cc.value);
-//			if(!strcmp(cc.name,"--startday")) cp.day=atoi(cc.value);
+				else if(!strcmp(cc.name,"--dateformat")) strcpy(cp.date_format,cc.value);
+					
 		}
-	//	putchar(*buf);
-	//	putchar('0');
-		//buf++;
 	}
 	cp.buf=buf;
 	return cp;
@@ -262,18 +169,27 @@ struct cmd_p parse_cmd(char *buf)
 void search_dir(char *buf)
 {
 	struct cmd_p c;
+	struct tm tm;
+	char date_b[255];
 	for(;*buf;buf++)
 	{
 		if(*buf=='[') 
 		{
 			c=parse_cmd(buf);
 			buf=c.buf;
-			if (!strcmp(c.datatype,"WI")) print_WI(c.day); //printf("%s",w.url);
+			if (!strcmp(c.datatype,"WI")) print_WI(c.day);
 				else if (!strcmp(c.datatype,"CT")) printf("%s °C",w.temp);
 					else if (!strcmp(c.datatype,"WS")) printf("%s км/ч",w.wind_speed);
-						else if (!strcmp(c.datatype,"HT")) printf("%s °C",ww[c.day-1].temp_max);
-							else if (!strcmp(c.datatype,"LT")) printf("%s °C",ww[c.day-1].temp_min);
-		//	printf("<%s %d>",c.datatype,c.day);
+						else if (!strcmp(c.datatype,"HT")) printf("%s °C",ww[c.day].temp_max);
+							else if (!strcmp(c.datatype,"LT")) printf("%s °C",ww[c.day].temp_min);
+								else if (!strcmp(c.datatype,"DW"))
+									{
+										memset(&tm, 0, sizeof(struct tm));						
+       								strptime(ww[c.day].date,"%Y-%m-%d", &tm);
+									//	printf("(%s)",c.date_format);
+									strftime(date_b, sizeof(date_b), c.date_format, &tm);
+										 printf("%s",date_b);
+									}
 		}
 		else putchar(*buf);
 	}
@@ -303,7 +219,6 @@ void xml_to_cur(xmlNode *root_element, char *s, int n, char *cw)
 {
 	nn_day=0;
 		print_element_names(root_element,s,n);
-//		printf("<%s>",temp);
 		strcpy(cw,temp);
 		temp=NULL;
 	return;
@@ -319,7 +234,6 @@ xmlDocPtr copy_xml(char *buf,int l,int day)
 	xml_to_cur(root_element,"observation_time",0,w.time);
 	xml_to_cur(root_element,"temp_C",0,w.temp);
 	xml_to_cur(root_element,"weatherCode",0,w.code);
-	//xml_to_cur(root_element,"weatherIconUrl",0,w.url);
 	sprintf(w.url,"http://cdn.worldweatheronline.net/images/weather/large/%s_day_lg.png",w.code);
 	xml_to_cur(root_element,"weatherDesc",0,w.desc);
 	xml_to_cur(root_element,"windspeedKmph",0,w.wind_speed);
@@ -335,7 +249,6 @@ xmlDocPtr copy_xml(char *buf,int l,int day)
 			xml_to_cur(root_element,"tempMaxC",c,ww[c].temp_max);
 			xml_to_cur(root_element,"tempMinC",c,ww[c].temp_min);
 			xml_to_cur(root_element,"weatherCode",c+1,ww[c].code);
-			//xml_to_cur(root_element,"weatherIconUrl",c+1,ww[c].url);
 			sprintf(ww[c].url,"http://cdn.worldweatheronline.net/images/weather/large/%s_day_lg.png",ww[c].code);
 			xml_to_cur(root_element,"weatherDesc",c+1,ww[c].desc);
 			xml_to_cur(root_element,"windspeedKmph",c+1,ww[c].wind_speed);
@@ -364,14 +277,13 @@ int main(int argc, char *argv[])
 {
 	FILE *f;
 	char *buf_conf;
-	int url_day=3;
+	int url_day=4;
 	CURL *url;
 	CURLcode cerr;
 	char cr_url[200];
-	int day=3;
+	int day=4;
 	struct stat sb;
 	if(stat(conky_w_conf,&sb)==-1) err_rep(7);
-//	printf("%d",(int)sb.st_size);
 	if(!(buf_conf=calloc(sb.st_size,sizeof(char)))) err_rep(8);
 	if((f=fopen(conky_w_conf, "rb"))==NULL) err_rep(6);
 	fread(buf_conf, sizeof(char),sb.st_size, f);
@@ -390,8 +302,6 @@ int main(int argc, char *argv[])
 //	if(day>url_day) err_rep(0);
 	pr=copy_xml(&w_buf[0],sizeof(w_buf),day);
 	search_dir(buf_conf);
-	//printf("%s",buf_conf);
-//	printf("%d",sizeof(struct weather));
 	free(ww);
 	free(buf_conf);
 	return 0;
