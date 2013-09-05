@@ -15,19 +15,31 @@
  * You should have received a copy of the GNU General Public License along
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#define conky_w_conf "/home/smike/conky_w/conky_w.rc"
+#define MAX_BUF	6000
+
 
 #include <stdio.h>
 #include <curl/curl.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 #include <string.h>
-#define MAX_BUF	6000
+#include <sys/stat.h>
 
-char w_buf[MAX_BUF+1];
-int w_index;
-int nn_day;
-xmlDocPtr pr;
-char *temp;
+struct cmd
+{
+	char name[256];
+	char value[4];
+	char *buf;
+};
+
+struct cmd_p
+{
+	char datatype[3];
+	int day;
+	char *buf;
+};
+
 struct weather_cur
 {
 	char time[11];
@@ -60,6 +72,213 @@ struct weather
 
 struct weather * ww;
 struct weather_cur w;
+int w_index=0;
+char w_buf[MAX_BUF+1];
+xmlDocPtr pr;
+char *temp;
+int nn_day;
+
+void err_rep(int n)
+{
+	char *err_r[]=
+	{
+		"Значение day не может быть больше nday\n",
+		"Значение nday не может быть больше 7\n",
+		"Ошибка инициализации curl\n",
+		"Ошибка получения погоды.\n",
+		"Ошибка при распределении памяти\n",
+		"Не выбран ни один параметр\n",
+		"Не удаётся отрыть файл.\n",
+		"Ошибка получение атрибутов файла конфигурации\n",
+		"Ошибка при распределении памяти\n"
+	};
+	printf("%s",err_r[n]);
+	free(ww);
+	exit(1);
+}
+
+/*struct cmd read_cmd(char *buf)
+{
+	int c=0;
+	int cv=0;
+	int fl=0;
+	struct cmd cc;
+	while(*buf!=']')
+	{
+		cc.name[c+1]='\0';
+		cc.value[cv+1]='\0';
+		if((*buf=='-')&&(*(buf+1)=='-')) buf=buf+2;
+		else if(*buf==' ') {
+							buf++;
+							break;
+							}
+		if(*buf==' ') {cc.buf=buf; return cc;}
+		if(!fl) {if(*buf!='=') cc.name[c++]=*buf;
+			else fl=1;
+		}
+		else if(*buf!=' ') cc.value[cv++]=*buf;
+		
+	
+	//if((*(buf)=='-')&&(*(buf+1)=='-')) printf("\nYahoo!!!\n");
+		putchar(*buf);
+//	printf("[%d]",buf);
+	buf++;
+	}
+	cc.buf=buf;
+	return cc;
+}*/
+
+void print_WI(int day)
+{
+	FILE *f;
+	CURL *url;
+	CURLcode cerr;
+	if(day) f=fopen(ww[day-1].code,"w+b");
+	else f=fopen(w.code,"w+b");
+	if(!(url=curl_easy_init())) err_rep(2);
+	if(day) curl_easy_setopt( url, CURLOPT_URL, ww[day-1].url );
+	else curl_easy_setopt( url, CURLOPT_URL, w.url );
+	curl_easy_setopt( url, CURLOPT_WRITEDATA, f);
+	curl_easy_setopt( url, CURLOPT_WRITEFUNCTION, NULL );
+	cerr = curl_easy_perform( url );
+	if(cerr) err_rep(3);
+		//	xml_to_img();
+			if(day) printf("~/conky_w/%s",ww[day-1].code);
+			else printf("~/conky_w/%s",w.code);
+			curl_easy_cleanup( url );
+	fclose(f);
+	return;
+}
+void print_n_WI(int day)
+{
+	FILE *f;
+	CURL *url;
+	CURLcode cerr;
+	f=fopen(ww[day].code,"w+b");
+	if(!(url=curl_easy_init())) err_rep(2);
+	curl_easy_setopt( url, CURLOPT_URL, ww[day].url );
+	curl_easy_setopt( url, CURLOPT_WRITEDATA, f);
+	curl_easy_setopt( url, CURLOPT_WRITEFUNCTION, NULL );
+	cerr = curl_easy_perform( url );
+	if(cerr) err_rep(3);
+		//	xml_to_img();
+			printf("~/conky_w/%s",ww[day].code);
+			curl_easy_cleanup( url );
+	fclose(f);
+	return;
+}
+/*void print_CT(void)
+{
+	
+	if(cerr) err_rep(3);
+		//	xml_to_img();
+			printf("~/conky_w/%s",w.code);
+			curl_easy_cleanup( url );
+	return;
+}*/
+
+/*char * parse_cmd(char *buf)
+{
+	struct cmd cc;
+	struct cmd cc_temp;
+	while(*buf!=']')
+	{
+		buf++;
+	if((*buf=='-')&&(*(buf+1)=='-')) {//printf("\nYahoo!!!\n");
+		//buf++;
+		cc=read_cmd(buf+2);
+		buf=cc.buf;
+	//	printf("\n(%s)=(%s),%d\n",cc.name,cc.value,buf);
+		if(!strcmp(cc.name,"datatype"))
+			{
+				if (!strcmp(cc.value,"WI")) print_WI(); //printf("%s",w.url);
+				else if (!strcmp(cc.value,"CT")) printf("%s °C",w.temp);
+					else if (!strcmp(cc.value,"WS")) printf("%s км/ч",w.wind_speed);
+				cc_temp=cc;
+			}
+		else if((!strcmp(cc.name,"startday"))&&(!strcmp(cc_temp.name,"datatype")))
+			{
+				if (!strcmp(cc_temp.value,"WI")) print_n_WI(strtol(cc.value,NULL, 10)-1); //printf("%s",w.url);
+				//else if (!strcmp(cc.value,"CT")) printf("%s °C",w.temp);
+					//else if (!strcmp(cc.value,"WS")) printf("%s км/ч",w.wind_speed);
+			}
+			//	printf("[%s]!!!!!!!",cc_temp.name);	
+
+	}
+//	else printf("\nY%c-%c",*buf,*(buf+1));
+	}
+	return buf;
+}*/
+
+struct cmd read_cmd(char *buf)
+{
+	struct cmd cc;
+	int c=0,fl=0,cv=0;;
+//	char a='f',b='g';
+	cc.name[0]='\0';
+	cc.value[0]='\0';
+	for(;*buf!=']';buf++)
+	{
+	//	printf("[%c]",*buf);
+		cc.name[c+1]='\0';
+		cc.value[cv+1]='\0';
+		//cc.name[c++]=*buf;
+		if(*buf==' ') {cc.buf=buf; return cc;}
+		if(!fl) {if(*buf!='=') cc.name[c++]=*buf;
+			else fl=1;
+		}
+		else if(*buf!=' ') cc.value[cv++]=*buf;
+		
+	}
+//	if((a=='f')||(b=='g')) printf("\nEEEEEEE!");
+	cc.buf=buf;
+	return cc;
+}
+struct cmd_p parse_cmd(char *buf)
+{
+	struct cmd cc;
+	struct cmd_p cp;
+	cp.datatype[0]='\0';
+	cp.day=0;
+	for(;*buf!=']';buf++)
+	{
+		if((*buf=='-')&&(*(buf+1)=='-'))
+		{
+			cc=read_cmd(buf);//putchar('+');
+	//		printf("(%s=%s)",cc.name,cc.value);
+			cc.buf=buf;
+			if(!strcmp(cc.name,"--datatype")) strcpy(cp.datatype,cc.value);
+			else if(!strcmp(cc.name,"--startday")) cp.day=atoi(cc.value);
+//			if(!strcmp(cc.name,"--startday")) cp.day=atoi(cc.value);
+		}
+	//	putchar(*buf);
+	//	putchar('0');
+		//buf++;
+	}
+	cp.buf=buf;
+	return cp;
+}
+
+void search_dir(char *buf)
+{
+	struct cmd_p c;
+	for(;*buf;buf++)
+	{
+		if(*buf=='[') 
+		{
+			c=parse_cmd(buf);
+			buf=c.buf;
+			if (!strcmp(c.datatype,"WI")) print_WI(c.day); //printf("%s",w.url);
+				else if (!strcmp(c.datatype,"CT")) printf("%s °C",w.temp);
+					else if (!strcmp(c.datatype,"WS")) printf("%s км/ч",w.wind_speed);
+						else if (!strcmp(c.datatype,"HT")) printf("%s °C",ww[c.day-1].temp_max);
+							else if (!strcmp(c.datatype,"LT")) printf("%s °C",ww[c.day-1].temp_min);
+		//	printf("<%s %d>",c.datatype,c.day);
+		}
+		else putchar(*buf);
+	}
+	return;
+}
 
 void print_element_names(xmlNode * a_node, char *find_s, int n_day)
 {
@@ -78,20 +297,6 @@ void print_element_names(xmlNode * a_node, char *find_s, int n_day)
         if (!temp) print_element_names(cur_node->children,find_s,n_day);
    	}
 	return;
-}
-
-size_t parse_weather( void *buffer, size_t size, size_t nmemb, void *userp )
-{
- int segsize = size * nmemb;
- if ( w_index + segsize > MAX_BUF )
-	{
-	*(int *)userp = 1;
-	return 0;
-	}
-  memcpy( (void *)&w_buf[w_index], buffer, (size_t)segsize );
- w_index += segsize;
- w_buf[w_index] = 0;
- return segsize;
 }
 
 void xml_to_cur(xmlNode *root_element, char *s, int n, char *cw)
@@ -130,7 +335,8 @@ xmlDocPtr copy_xml(char *buf,int l,int day)
 			xml_to_cur(root_element,"tempMaxC",c,ww[c].temp_max);
 			xml_to_cur(root_element,"tempMinC",c,ww[c].temp_min);
 			xml_to_cur(root_element,"weatherCode",c+1,ww[c].code);
-			xml_to_cur(root_element,"weatherIconUrl",c+1,ww[c].url);
+			//xml_to_cur(root_element,"weatherIconUrl",c+1,ww[c].url);
+			sprintf(ww[c].url,"http://cdn.worldweatheronline.net/images/weather/large/%s_day_lg.png",ww[c].code);
 			xml_to_cur(root_element,"weatherDesc",c+1,ww[c].desc);
 			xml_to_cur(root_element,"windspeedKmph",c+1,ww[c].wind_speed);
 			xml_to_cur(root_element,"winddir16Point",c+1,ww[c].wind_dir);
@@ -140,126 +346,54 @@ xmlDocPtr copy_xml(char *buf,int l,int day)
 	return prr;
 }
 
-int check_arg(int ac, char *av[], char *s)
+size_t parse_weather( void *buffer, size_t size, size_t nmemb, void *userp )
 {
-	int u_day=1;
-	int c;
-	char *v;
-	//printf("%d",strlen(s));
-	for(c=1;c<ac;c++)
-		if(!strncmp(av[c],s,strlen(s)))
-			{
-		//		printf("%s",&av[c][strlen(s)]);
-				v=&av[c][strlen(s)+1];
-				//if(!(u_day=strtol(v,NULL, 10))) printf("Неправильный агрумент %s",s);
-				u_day=strtol(v,NULL, 10);
-	//			printf("%d",u_day);
-			}
-	return  u_day;
-}
-
-int check_arg_s(int ac, char *av[], char *s)
-{
-	
-	int c;
-	char *v;
-	int r=0;
-//	printf("%d",strlen(s));
-	for(c=1;c<ac;c++)
-		if(!strncmp(av[c],s,strlen(s)))
-			{
-				//printf("%s",&av[c][strlen(s)]);
-				v=&av[c][strlen(s)+1];
-				 //if(strlen(av[c])>strlen(s)) strcpy(v,&av[c][strlen(s)+1]);
-				//else 
-				//printf("[%s]",&av[c][strlen(s)+1]);
-				//if(!(u_day=strtol(v,NULL, 10))) printf("Неправильный агрумент %s",s);
-			if(!strcmp("temp",v)) r=1;
-			else if(!strcmp("img",v)) r=2;
-				else if(!strcmp("wind",v)) r=3;
-	//			printf("%d",u_day);
-			}
-	
-	return  r;
-}
-
-void err_rep(int n)
-{
-	char *err_r[]=
+ int segsize = size * nmemb;
+ if ( w_index + segsize > MAX_BUF )
 	{
-		"Значение day не может быть больше nday\n",
-		"Значение nday не может быть больше 7\n",
-		"Ошибка инициализации curl\n",
-		"Ошибка получения погоды.\n",
-		"Ошибка при распределении памяти\n",
-		"Не выбран ни один параметр\n"
-	};
-	printf("%s",err_r[n]);
-	free(ww);
-	exit(0);
-}
-
-void xml_to_img(void)
-{
-	
-	printf("${image %s -p 1,360 -s 70x70}",w.url);
-	return;
+	*(int *)userp = 1;
+	return 0;
+	}
+  memcpy( (void *)&w_buf[w_index], buffer, (size_t)segsize );
+ w_index += segsize;
+ w_buf[w_index] = 0;
+ return segsize;
 }
 
 int main(int argc, char *argv[])
 {
 	FILE *f;
+	char *buf_conf;
+	int url_day=3;
 	CURL *url;
 	CURLcode cerr;
-	int url_day=1;
-	int day=0;
-	int c;
 	char cr_url[200];
-	w_index = 0;
-	if(argc>1)
-		{
-			if((url_day=check_arg(argc, argv,"--nday"))>7) err_rep(1);
-			day=check_arg(argc, argv,"--day");
-		}
-	if((ww = malloc((url_day+1)*sizeof(struct weather)))==NULL) err_rep(4);
+	int day=3;
+	struct stat sb;
+	if(stat(conky_w_conf,&sb)==-1) err_rep(7);
+//	printf("%d",(int)sb.st_size);
+	if(!(buf_conf=calloc(sb.st_size,sizeof(char)))) err_rep(8);
+	if((f=fopen(conky_w_conf, "rb"))==NULL) err_rep(6);
+	fread(buf_conf, sizeof(char),sb.st_size, f);
+	fclose(f);
+	if((ww = malloc(url_day*sizeof(struct weather)))==NULL) err_rep(4);
     if(!(url=curl_easy_init())) err_rep(2);
 	sprintf(cr_url,"http://api.worldweatheronline.com/free/v1/weather.ashx?q=Tambov&format=xml&num_of_days=\%d&key=brskzv3ts8ma9jqwgrzz35at",url_day);
 	curl_easy_setopt( url, CURLOPT_URL, cr_url );
 	curl_easy_setopt( url, CURLOPT_WRITEFUNCTION, parse_weather );
 	cerr = curl_easy_perform( url );
 	if(cerr) err_rep(3);
+//	curl_easy_getinfo(url,CURLINFO_CONTENT_LENGTH_DOWNLOAD,&uu);
+//	printf("%d",uu);
 	//printf("cerr=%d {%s}",cerr,w_buf);
-//	curl_easy_cleanup( url );
-	if(day>url_day) err_rep(0);
+	curl_easy_cleanup( url );
+//	if(day>url_day) err_rep(0);
 	pr=copy_xml(&w_buf[0],sizeof(w_buf),day);
-//	param=;
-//	printf("%d",param);
-//	if(check_arg_s(argc, argv,"--param"))
-switch(check_arg_s(argc, argv,"--param"))
-
-	{
-		case 1:
-			printf("%s",w.temp);
-			break;
-		case 2:
-			f=fopen(w.code,"w+b");
-			curl_easy_setopt( url, CURLOPT_URL, w.url );
-			curl_easy_setopt( url, CURLOPT_WRITEDATA, f);
-			curl_easy_setopt( url, CURLOPT_WRITEFUNCTION, NULL );
-			cerr = curl_easy_perform( url );
-		//	xml_to_img();
-			printf("${image ~/conky_w/%s -p 1,360 -s 70x70}",w.code);
-			curl_easy_cleanup( url );
-			break;
-		case 3:
-			printf("%s",w.wind_speed);
-			break;
-		default: err_rep(5);
-	}
-//	for(c=0;c<day;c++) printf("\n%s %s %s %s %s %s %s %s %s",ww[c].date,ww[c].temp_max,ww[c].temp_min,ww[c].code,ww[c].url,ww[c].desc,ww[c].wind_speed,ww[c].wind_dir,ww[c].precip);
-//	printf("\n\n%s",w.url);
-//	printf("\n");
+	search_dir(buf_conf);
+	//printf("%s",buf_conf);
+//	printf("%d",sizeof(struct weather));
 	free(ww);
+	free(buf_conf);
 	return 0;
 }
 
