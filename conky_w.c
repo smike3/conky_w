@@ -180,14 +180,14 @@ void search_dir(char *buf)
 			c=parse_cmd(buf);
 			buf=c.buf;
 			if (!strcmp(c.datatype,"WI")) print_WI(c.day);
-				else if (!strcmp(c.datatype,"CT")) if(c.hide_u) printf("%s",w.temp);
-													else printf("%s °C",w.temp);
-					else if (!strcmp(c.datatype,"WS")) printf("%s км/ч",w.wind_speed);
-						else if (!strcmp(c.datatype,"HT")) if(c.hide_u) printf("%s",ww[c.day].temp_max);
-															else printf("%s °C",ww[c.day].temp_max);
+			else if (!strcmp(c.datatype,"CT")) if(c.hide_u) printf("%s",w.temp);
+											   else printf("%s °C",w.temp);
+				 else if (!strcmp(c.datatype,"WS")) printf("%s км/ч",w.wind_speed);
+					  else if (!strcmp(c.datatype,"HT")) if(c.hide_u) printf("%s",ww[c.day].temp_max);
+														 else printf("%s °C",ww[c.day].temp_max);
 							else if (!strcmp(c.datatype,"LT")) if(c.hide_u) printf("%s",ww[c.day].temp_min);
 																else printf("%s °C",ww[c.day].temp_min);
-								else if (!strcmp(c.datatype,"DW"))
+								 else if (!strcmp(c.datatype,"DW"))
 									{
 										memset(&tm, 0, sizeof(struct tm));						
        								strptime(ww[c.day].date,"%Y-%m-%d", &tm);
@@ -195,6 +195,16 @@ void search_dir(char *buf)
 									strftime(date_b, sizeof(date_b), c.date_format, &tm);
 										 printf("%s",date_b);
 									}
+										else if (!strcmp(c.datatype,"CP")) if(c.hide_u) printf("%s",w.pressure);
+																		else printf("%s мм.рт.ст.",w.pressure);						
+											  else if(!strcmp(c.datatype,"WD")) if(c.day) printf("%s",ww[c.day].wind_dir);
+																		        else printf("%s",w.wind_dir);
+													else if(!strcmp(c.datatype,"HM")) if(c.hide_u) printf("%s",w.humidity);
+																					 else printf("%s %c",w.humidity,'%');
+														else if(!strcmp(c.datatype,"CC")) {if(c.hide_u) printf("%s",w.cloudcover);
+																					 else printf("%s %c",w.cloudcover,'%');}
+																		
+										
 		}
 		else putchar(*buf);
 	}
