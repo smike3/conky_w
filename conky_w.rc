@@ -1,0 +1,5 @@
+${image [--datatype=WI] -p 1,375 -s 70x70}${offset 77}${color}${font Sans:size=14}[--datatype=CT]${offset 47}${color lightgrey}${font}[--datatype=DW --startday=1 --dateformat=%a]${offset 39}[--datatype=DW --startday=2 --dateformat=%a]${offset 38}[--datatype=DW --startday=3 --dateformat=%a]
+${font}${offset 77}Ветер: ${color}[--datatype=WS]
+${offset 77}${color lightgrey}Влажность: ${color}[--datatype=HM]${image [--datatype=WI --startday=1] -p 170,381 -s 33x33}${image [--datatype=WI --startday=2] -p 220,381 -s 33x33}${image [--datatype=WI --startday=3] -p 270,381 -s 33x33}
+${offset 77}${color lightgrey}Облачность:${color}[--datatype=CC]
+${offset 164}${color lightgrey}[--datatype=HT --startday=1 --hideunits --centeredwidth=3]/[--datatype=LT --startday=1 --centeredwidth=3]${offset 12}[--datatype=HT --startday=2 --hideunits --centeredwidth=3]/[--datatype=LT --startday=2 --centeredwidth=3]${offset 12}[--datatype=HT --startday=3 --hideunits --centeredwidth=3]/[--datatype=LT --startday=3 --centeredwidth=3]
