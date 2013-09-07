@@ -200,9 +200,9 @@ void search_dir(char *buf)
 											  else if(!strcmp(c.datatype,"WD")) if(c.day) printf("%s",ww[c.day].wind_dir);
 																		        else printf("%s",w.wind_dir);
 													else if(!strcmp(c.datatype,"HM")) if(c.hide_u) printf("%s",w.humidity);
-																					 else printf("%s %c",w.humidity,'%');
+																					 else printf("%s%c",w.humidity,'%');
 														else if(!strcmp(c.datatype,"CC")) {if(c.hide_u) printf("%s",w.cloudcover);
-																					 else printf("%s %c",w.cloudcover,'%');}
+																					 else printf("%s%c",w.cloudcover,'%');}
 																		
 										
 		}
