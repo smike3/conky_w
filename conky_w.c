@@ -106,8 +106,10 @@ void print_WI(int day)
 	FILE *f;
 	CURL *url;
 	CURLcode cerr;
-	if(day) f=fopen(ww[day].code,"w+b");
-	else f=fopen(w.code,"w+b");
+	char path[255]="/home/smike/conky_w/";
+	if(day) strcat(path,ww[day].code);
+	else strcat(path,w.code);
+	f=fopen(path,"w+b");
 	if(!(url=curl_easy_init())) err_rep(2);
 	if(day) curl_easy_setopt( url, CURLOPT_URL, ww[day].url );
 	else curl_easy_setopt( url, CURLOPT_URL, w.url );
